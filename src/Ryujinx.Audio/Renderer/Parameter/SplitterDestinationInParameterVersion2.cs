@@ -1,3 +1,4 @@
+using Ryujinx.Common.Memory;
 using Ryujinx.Common.Utilities;
 using System;
 using System.Runtime.InteropServices;
@@ -5,10 +6,10 @@ using System.Runtime.InteropServices;
 namespace Ryujinx.Audio.Renderer.Parameter
 {
     /// <summary>
-    /// Input header for a splitter destination update.
+    /// Input header for a splitter destination version 2 update.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct SplitterDestinationInParameter
+    public struct SplitterDestinationInParameterVersion2 : ISplitterDestinationInParameter
     {
         /// <summary>
         /// Magic of the input header.
@@ -31,17 +32,28 @@ namespace Ryujinx.Audio.Renderer.Parameter
         public int DestinationId;
 
         /// <summary>
+        /// Biquad filter parameters.
+        /// </summary>
+        public Array2<BiquadFilterParameter> BiquadFilters;
+
+        /// <summary>
         /// Set to true if in use.
         /// </summary>
         [MarshalAs(UnmanagedType.I1)]
         public bool IsUsed;
 
         /// <summary>
+        /// Set to true to force resetting the previous mix volumes.
+        /// </summary>
+        [MarshalAs(UnmanagedType.I1)]
+        public bool ResetPrevVolume;
+
+        /// <summary>
         /// Reserved/padding.
         /// </summary>
-        private unsafe fixed byte _reserved[3];
+        private unsafe fixed byte _reserved[10];
 
-        [StructLayout(LayoutKind.Sequential, Size = 4 * Constants.MixBufferCountMax, Pack = 1)]
+        [StructLayout(LayoutKind.Sequential, Size = sizeof(float) * Constants.MixBufferCountMax, Pack = 1)]
         private struct MixArray { }
 
         /// <summary>
@@ -49,6 +61,15 @@ namespace Ryujinx.Audio.Renderer.Parameter
         /// </summary>
         /// <remarks>Used when a splitter id is specified in the mix.</remarks>
         public Span<float> MixBufferVolume => SpanHelpers.AsSpan<MixArray, float>(ref _mixBufferVolume);
+
+        readonly int ISplitterDestinationInParameter.Id => Id;
+
+        readonly int ISplitterDestinationInParameter.DestinationId => DestinationId;
+
+        readonly Array2<BiquadFilterParameter> ISplitterDestinationInParameter.BiquadFilters => BiquadFilters;
+
+        readonly bool ISplitterDestinationInParameter.IsUsed => IsUsed;
+        readonly bool ISplitterDestinationInParameter.ResetPrevVolume => ResetPrevVolume;
 
         /// <summary>
         /// The expected constant of any input header.
